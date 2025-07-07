@@ -1,6 +1,6 @@
 # react-image-magnify-lib
 
-A React image magnify component library compatible with React 19. This library provides an easy-to-use image magnification component that supports magnifying images on hover, with additional features like double-click zoom mode and scroll wheel zoom adjustment.
+A React image magnify component library compatible with React 19. This library provides an easy-to-use image magnification component that supports magnifying images on hover, with additional features like double-click zoom mode, scroll wheel zoom adjustment and AI captioning.
 
 ## Features
 
