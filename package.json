@@ -1,0 +1,42 @@
+{
+  "name": "react-image-magnify-lib",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A React 19 image magnify library that suppots image magnification in react appllicatons. ",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=16.0.0 <20.0.0",
+    "react-dom": ">=16.0.0 <20.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/react": "^18.0.0",
+    "react": ">=16.0.0 <20.0.0",
+    "react-dom": ">=16.0.0 <20.0.0",
+    "rollup": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.6.0"
+  },
+  "keywords": [
+    "react",
+    "image",
+    "magnify",
+    "zoom",
+    "hover"
+  ],
+  "author": "OPARE MARTIN",
+  "license": "MIT"
+}

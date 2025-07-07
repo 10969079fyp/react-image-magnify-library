@@ -1,0 +1,31 @@
+import React, { MouseEvent, WheelEvent, TouchEvent, RefObject } from 'react';
+import { MagnifierShape } from './ReactImageMagnifyUtils';
+interface EventHandlerParams {
+    imgRef: RefObject<HTMLImageElement | null>;
+    containerRef: RefObject<HTMLDivElement | null>;
+    setShowMagnifier: React.Dispatch<React.SetStateAction<boolean>>;
+    setMagnifierX: React.Dispatch<React.SetStateAction<number>>;
+    setMagnifierY: React.Dispatch<React.SetStateAction<number>>;
+    setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
+    setZoomMode: React.Dispatch<React.SetStateAction<boolean>>;
+    setMagnifierShape: React.Dispatch<React.SetStateAction<MagnifierShape>>;
+    zoomMode: boolean;
+    initialZoomLevel: number;
+    magnifierShape: MagnifierShape;
+    isFullScreen: boolean;
+    lastTouchDistance: React.MutableRefObject<number | null>;
+    lastRightClickTime: React.MutableRefObject<number>;
+    lastTap: React.MutableRefObject<number>;
+    toggleFullScreen: () => void;
+}
+export declare function handleContextMenu(e: MouseEvent<HTMLDivElement>, setMagnifierShape: React.Dispatch<React.SetStateAction<MagnifierShape>>): void;
+export declare function handleRightClick(e: MouseEvent<HTMLDivElement>, imgRef: RefObject<HTMLImageElement | null>, lastRightClickTime: React.MutableRefObject<number>, toggleFullScreen: () => void): void;
+export declare function handleMouseMove(e: MouseEvent<HTMLDivElement>, params: EventHandlerParams): void;
+export declare function handleMouseLeave(params: EventHandlerParams): void;
+export declare function handleDoubleClick(e: MouseEvent<HTMLDivElement>, params: EventHandlerParams): void;
+export declare function handleWheel(e: WheelEvent<HTMLDivElement>, params: EventHandlerParams): void;
+export declare function handleTouchStart(e: TouchEvent<HTMLDivElement>, lastTouchDistance: React.MutableRefObject<number | null>): void;
+export declare function handleTouchMove(e: TouchEvent<HTMLDivElement>, params: EventHandlerParams): void;
+export declare function handleTouchEnd(e: TouchEvent<HTMLDivElement>, lastTouchDistance: React.MutableRefObject<number | null>): void;
+export declare function handleTouchTap(e: TouchEvent<HTMLDivElement>, params: EventHandlerParams): void;
+export {};

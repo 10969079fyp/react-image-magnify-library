@@ -1,0 +1,9 @@
+node_modules
+litRiv.md
+methodology.md
+Project_Presentation_Outline.md
+build
+.env
+.DS_Store
+package-lock.json # npm users
+yarn.lock       # Yarn users
