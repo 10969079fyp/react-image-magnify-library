@@ -31,21 +31,54 @@ npm install /path/to/react-image-magnify-lib
 
 ## Usage
 
-Import the component and use it in your React app:
+This library provides two main components for image magnification: `ReactImageMagnify` and `ReactImageMagnifier`.
+
+### ReactImageMagnify
+
+This is the full-featured component with advanced capabilities including fullscreen toggle, magnifier shape toggle, touch gesture support, and AI-generated captions.
 
 ```tsx
 import React from "react";
-import { ReactImageMagnifyNew } from "react-image-magnify-lib";
+import ReactImageMagnify from "./src/ReactImageMagnify";
 
 const App = () => {
   return (
     <div>
-      <h1>Image Magnify Example</h1>
-      <ReactImageMagnifyNew
+      <h1>ReactImageMagnify Example</h1>
+      <ReactImageMagnify
         smallImageSrc="https://via.placeholder.com/400"
         largeImageSrc="https://via.placeholder.com/1200"
-        magnifierHeight={200}
-        magnifierWidth={200}
+        magnifierHeight={250}
+        magnifierWidth={250}
+        zoomLevel={2}
+        alt="Example Image"
+        showCaptions={true}
+        captionModelUrl="https://api-inference.huggingface.co/models/your-model"
+      />
+    </div>
+  );
+};
+
+export default App;
+```
+
+### ReactImageMagnifier
+
+This is a simpler component with basic magnification on hover, double-click zoom mode, and scroll wheel zoom adjustment. It uses a fixed circular magnifier lens and does not support fullscreen, shape toggle, touch gestures, or AI captions.
+
+```tsx
+import React from "react";
+import ReactImageMagnifier from "./src/ReactImageMagnifier";
+
+const App = () => {
+  return (
+    <div>
+      <h1>ReactImageMagnifier Example</h1>
+      <ReactImageMagnifier
+        smallImageSrc="https://via.placeholder.com/400"
+        largeImageSrc="https://via.placeholder.com/1200"
+        magnifierHeight={250}
+        magnifierWidth={250}
         zoomLevel={2}
         alt="Example Image"
       />
@@ -55,6 +88,11 @@ const App = () => {
 
 export default App;
 ```
+
+### When to Use Which Component
+
+- Use **ReactImageMagnify** if you need advanced features like fullscreen mode, magnifier shape toggle, touch gesture support, and AI-generated captions.
+- Use **ReactImageMagnifier** if you want a lightweight, simple magnification component with basic zoom functionality.
 
 ### Props
 
@@ -92,7 +130,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to interact with the image magnify component.
+Open in your browser to interact with the image magnify component.
 
 ## License
 
