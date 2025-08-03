@@ -70,6 +70,7 @@ const ReactImageMagnifyDisplay: React.FC<MagnifierDisplayProps> = ({
               magnifierHeight={magnifierHeight}
               zoomLevel={zoomLevel}
               captionModelUrl={captionModelUrl}
+              showCaptions={showCaptions}
               style={{
                 position: 'absolute',
                 top: magnifierY + magnifierHeight / 2 + 5,

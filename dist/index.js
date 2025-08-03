@@ -603,7 +603,7 @@ function handleTouchTap(e, params) {
     });
 }
 
-const ReactImageMagnifyAICaption = ({ imgRef, magnifierX, magnifierY, magnifierWidth, magnifierHeight, zoomLevel, captionModelUrl, huggingFaceToken, style, }) => {
+const ReactImageMagnifyAICaption = ({ imgRef, magnifierX, magnifierY, magnifierWidth, magnifierHeight, zoomLevel, captionModelUrl, huggingFaceToken, style, showCaptions = true, }) => {
     const [caption, setCaption] = React.useState('Loading caption...');
     // Function to extract cropped image portion as base64
     const getCroppedImageBase64 = () => {
@@ -617,19 +617,23 @@ const ReactImageMagnifyAICaption = ({ imgRef, magnifierX, magnifierY, magnifierW
         // Calculate scale between natural and displayed image
         const scaleX = naturalWidth / displayedWidth;
         const scaleY = naturalHeight / displayedHeight;
-        // Calculate crop area in natural image coordinates for entire magnified portion
-        const cropWidth = Math.min((magnifierWidth / zoomLevel) * scaleX, naturalWidth);
-        const cropHeight = Math.min((magnifierHeight / zoomLevel) * scaleY, naturalHeight);
-        const cropX = Math.max(0, (magnifierX * scaleX) - cropWidth / 2);
-        const cropY = Math.max(0, (magnifierY * scaleY) - cropHeight / 2);
+        // Calculate the actual size of the magnified area in the natural image
+        const magnifiedWidth = magnifierWidth / zoomLevel;
+        const magnifiedHeight = magnifierHeight / zoomLevel;
+        // Calculate crop area in natural image coordinates (centered on magnifier position)
+        const cropX = Math.max(0, (magnifierX * scaleX) - (magnifiedWidth * scaleX) / 2);
+        const cropY = Math.max(0, (magnifierY * scaleY) - (magnifiedHeight * scaleY) / 2);
+        const cropWidth = Math.min(magnifiedWidth * scaleX, naturalWidth - cropX);
+        const cropHeight = Math.min(magnifiedHeight * scaleY, naturalHeight - cropY);
         // Create canvas to draw cropped image
         const canvas = document.createElement('canvas');
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
+        canvas.width = magnifiedWidth;
+        canvas.height = magnifiedHeight;
         const ctx = canvas.getContext('2d');
         if (!ctx)
             return null;
-        ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        // Draw the cropped portion, scaling it to fit the canvas
+        ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, magnifiedWidth, magnifiedHeight);
         // Get base64 data URL
         return canvas.toDataURL('image/jpeg');
     };
@@ -643,58 +647,165 @@ const ReactImageMagnifyAICaption = ({ imgRef, magnifierX, magnifierY, magnifierW
             return;
         }
         try {
-            const headers = {};
+            // Check if we have a valid base64 image
+            if (!imageBase64 || !imageBase64.startsWith('data:image')) {
+                setCaption('Unable to process image data');
+                return;
+            }
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            // Add authorization header if token is provided
             if (huggingFaceToken) {
                 headers['Authorization'] = `Bearer ${huggingFaceToken}`;
             }
-            headers['Content-Type'] = 'application/octet-stream';
             // The Hugging Face Inference API expects the image as base64 string without data URI prefix
             const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-            // Convert base64 string to Uint8Array
-            const binaryString = atob(base64Data);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
+            // Validate base64 data
+            if (!base64Data) {
+                setCaption('Invalid image data');
+                return;
             }
-            const response = await fetch(captionModelUrl, {
+            // Log the request for debugging
+            console.log('Sending request to caption model:', {
+                url: captionModelUrl,
+                hasToken: !!huggingFaceToken,
+                imageDataLength: base64Data.length
+            });
+            // Try direct fetch first
+            let response = await fetch(captionModelUrl, {
                 method: 'POST',
                 headers,
-                body: bytes,
+                body: JSON.stringify({ inputs: base64Data }),
             });
+            // Log the response status for debugging
+            console.log('Caption API response status:', response.status);
+            // If we get a CORS error or network error, try a different approach
+            if (response.status === 0) {
+                console.warn('Possible CORS or network issue detected. Trying alternative approach...');
+                setCaption('CORS/network issue. Check console for details.');
+                return;
+            }
             if (!response.ok) {
-                setCaption('Failed to get caption');
+                const errorText = await response.text();
+                console.error('Caption API error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText,
+                    url: captionModelUrl
+                });
+                // Handle specific error cases
+                if (response.status === 400) {
+                    setCaption('Invalid request. Check model URL.');
+                }
+                else if (response.status === 401) {
+                    setCaption('Unauthorized. Check API token.');
+                }
+                else if (response.status === 403) {
+                    setCaption('Access denied. Check API token permissions.');
+                }
+                else if (response.status === 404) {
+                    setCaption('Model not found. Check model URL.');
+                }
+                else if (response.status === 429) {
+                    setCaption('Rate limit exceeded. Try again later.');
+                }
+                else if (response.status >= 500) {
+                    setCaption('Server error. Try again later.');
+                }
+                else {
+                    setCaption(`Failed to get caption: ${response.status} ${response.statusText}`);
+                }
                 return;
             }
             const data = await response.json();
-            // The BLIP model returns the caption as a string directly or in a field
+            // Log the response data for debugging
+            console.log('Caption API response data:', data);
+            // Handle various response formats from Hugging Face models
+            let captionText = 'No caption available';
             if (typeof data === 'string') {
-                setCaption(data);
+                captionText = data;
             }
-            else if (data && data[0] && data[0].generated_text) {
-                setCaption(data[0].generated_text);
+            else if (Array.isArray(data)) {
+                // Handle array responses (most common)
+                if (data.length > 0) {
+                    if (typeof data[0] === 'string') {
+                        captionText = data[0];
+                    }
+                    else if (data[0].generated_text) {
+                        captionText = data[0].generated_text;
+                    }
+                    else if (data[0].caption) {
+                        captionText = data[0].caption;
+                    }
+                    else if (typeof data[0] === 'object' && data[0] !== null) {
+                        // Handle object in array
+                        const obj = data[0];
+                        if (obj.generated_text) {
+                            captionText = obj.generated_text;
+                        }
+                        else if (obj.caption) {
+                            captionText = obj.caption;
+                        }
+                        else {
+                            captionText = 'No recognizable caption in response';
+                        }
+                    }
+                    else {
+                        captionText = 'Unexpected response format';
+                    }
+                }
             }
-            else if (data.caption) {
-                setCaption(data.caption);
+            else if (typeof data === 'object' && data !== null) {
+                // Handle object responses
+                if (data.generated_text) {
+                    captionText = data.generated_text;
+                }
+                else if (data.caption) {
+                    captionText = data.caption;
+                }
+                else if (data[0] && data[0].generated_text) {
+                    captionText = data[0].generated_text;
+                }
+                else if (data[0] && data[0].caption) {
+                    captionText = data[0].caption;
+                }
+                else {
+                    captionText = 'Unexpected response format';
+                }
             }
             else {
-                setCaption('No caption available');
+                captionText = 'Unexpected response type';
             }
+            setCaption(captionText);
         }
         catch (error) {
-            setCaption('Error fetching caption');
+            console.error('Error fetching caption:', error);
+            // Handle specific error types
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                setCaption('Network error. Check your connection.');
+            }
+            else if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                setCaption('CORS error or network issue.');
+            }
+            else {
+                setCaption(`Error fetching caption: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
         }
     };
     React.useEffect(() => {
-        const imageBase64 = getCroppedImageBase64();
-        if (imageBase64) {
-            fetchCaption(imageBase64);
-        }
-        else {
-            setCaption('');
+        // Only fetch caption when captions are enabled, magnifier is shown, and we have valid coordinates
+        if (showCaptions && magnifierX > 0 && magnifierY > 0 && magnifierWidth > 0 && magnifierHeight > 0) {
+            const imageBase64 = getCroppedImageBase64();
+            if (imageBase64) {
+                fetchCaption(imageBase64);
+            }
+            else {
+                setCaption('Unable to process image');
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [magnifierX, magnifierY, magnifierWidth, magnifierHeight, zoomLevel]);
+    }, [magnifierX, magnifierY, magnifierWidth, magnifierHeight, zoomLevel, captionModelUrl, showCaptions]);
     return (jsxRuntimeExports.jsx("div", { style: style, children: caption }));
 };
 
@@ -717,7 +828,7 @@ const ReactImageMagnifyDisplay = ({ showMagnifier, isFullScreen, magnifierHeight
                             backgroundPositionY: `-${magnifierY * zoomLevel - magnifierHeight / 2}px`,
                             border: '1px solid #ccc',
                             zIndex: 9999,
-                        } }), showCaptions && imgRef && (jsxRuntimeExports.jsx(ReactImageMagnifyAICaption, { imgRef: imgRef, magnifierX: magnifierX, magnifierY: magnifierY, magnifierWidth: magnifierWidth, magnifierHeight: magnifierHeight, zoomLevel: zoomLevel, captionModelUrl: captionModelUrl, style: {
+                        } }), showCaptions && imgRef && (jsxRuntimeExports.jsx(ReactImageMagnifyAICaption, { imgRef: imgRef, magnifierX: magnifierX, magnifierY: magnifierY, magnifierWidth: magnifierWidth, magnifierHeight: magnifierHeight, zoomLevel: zoomLevel, captionModelUrl: captionModelUrl, showCaptions: showCaptions, style: {
                             position: 'absolute',
                             top: magnifierY + magnifierHeight / 2 + 5,
                             left: magnifierX - magnifierWidth / 2,
@@ -992,6 +1103,11 @@ const ReactImageMagnifier = (props) => {
                 } }))] }));
 };
 
+const ReactImageMagnifyAITest = () => {
+    return (jsxRuntimeExports.jsxs("div", { style: { padding: '20px', maxWidth: '800px', margin: '0 auto' }, children: [jsxRuntimeExports.jsx("h1", { children: "ReactImageMagnify AI Captioning Test" }), jsxRuntimeExports.jsx("p", { children: "Hover over the image below to see the AI-generated caption for the magnified portion." }), jsxRuntimeExports.jsx("div", { style: { marginTop: '20px' }, children: jsxRuntimeExports.jsx(ReactImageMagnify, { smallImageSrc: "https://images.unsplash.com/photo-1500964757620-d4f749d289e4?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80", largeImageSrc: "https://images.unsplash.com/photo-1500964757620-d4f749d289e4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80", magnifierHeight: 300, magnifierWidth: 300, zoomLevel: 2, alt: "Mountain landscape", showCaptions: true, captionModelUrl: "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base", style: { border: '1px solid #ccc', borderRadius: '4px' } }) }), jsxRuntimeExports.jsxs("div", { style: { marginTop: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }, children: [jsxRuntimeExports.jsx("h2", { children: "How to Test AI Captioning" }), jsxRuntimeExports.jsxs("ol", { children: [jsxRuntimeExports.jsx("li", { children: "Hover your mouse over the image above" }), jsxRuntimeExports.jsx("li", { children: "Move your mouse to different parts of the image" }), jsxRuntimeExports.jsx("li", { children: "Observe the caption that appears below the magnifier" }), jsxRuntimeExports.jsx("li", { children: "The caption should describe the content of the magnified area" })] }), jsxRuntimeExports.jsx("h3", { children: "Troubleshooting" }), jsxRuntimeExports.jsxs("ul", { children: [jsxRuntimeExports.jsx("li", { children: "If you see \"Loading caption...\" for more than a few seconds, check your internet connection" }), jsxRuntimeExports.jsx("li", { children: "If you see \"Failed to get caption\", verify the model URL is correct" }), jsxRuntimeExports.jsx("li", { children: "Check the browser console for detailed error messages" }), jsxRuntimeExports.jsx("li", { children: "For production use, add your Hugging Face API token" })] })] })] }));
+};
+
 exports.ReactImageMagnifier = ReactImageMagnifier;
 exports.ReactImageMagnify = ReactImageMagnify;
+exports.ReactImageMagnifyAITest = ReactImageMagnifyAITest;
 //# sourceMappingURL=index.js.map

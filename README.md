@@ -53,7 +53,8 @@ const App = () => {
         zoomLevel={2}
         alt="Example Image"
         showCaptions={true}
-        captionModelUrl="https://api-inference.huggingface.co/models/your-model"
+        captionModelUrl="https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+        huggingFaceToken="YOUR_HUGGING_FACE_API_TOKEN" // Optional for free tier models
       />
     </div>
   );
@@ -61,6 +62,42 @@ const App = () => {
 
 export default App;
 ```
+
+#### AI Captioning Feature
+
+The AI captioning feature generates descriptive captions for the magnified portion of images using machine learning models from Hugging Face.
+
+To use this feature:
+
+1. Sign up at [Hugging Face](https://huggingface.co/)
+2. Get an API token from your profile settings
+3. Choose a compatible image captioning model (e.g., Salesforce/blip-image-captioning-base)
+4. Add the `showCaptions`, `captionModelUrl`, and optionally `huggingFaceToken` props to your component
+
+For testing without a token, you can use the free tier model:
+
+```tsx
+<ReactImageMagnify
+  smallImageSrc="https://example.com/image.jpg"
+  largeImageSrc="https://example.com/large-image.jpg"
+  showCaptions={true}
+  captionModelUrl="https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+/>
+```
+
+For production use with your API token:
+
+```tsx
+<ReactImageMagnify
+  smallImageSrc="https://example.com/image.jpg"
+  largeImageSrc="https://example.com/large-image.jpg"
+  showCaptions={true}
+  captionModelUrl="https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+  huggingFaceToken="YOUR_HUGGING_FACE_API_TOKEN"
+/>
+```
+
+See the [AI_CAPTION_USAGE_GUIDE.md](AI_CAPTION_USAGE_GUIDE.md) for detailed setup instructions and [AI_CAPTION_TROUBLESHOOTING.md](AI_CAPTION_TROUBLESHOOTING.md) for help with common issues.
 
 ### ReactImageMagnifier
 

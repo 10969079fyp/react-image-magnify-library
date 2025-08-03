@@ -9,6 +9,7 @@ interface ReactImageMagnifyAICaptionProps {
     captionModelUrl?: string;
     huggingFaceToken?: string;
     style?: CSSProperties;
+    showCaptions?: boolean;
 }
 declare const ReactImageMagnifyAICaption: React.FC<ReactImageMagnifyAICaptionProps>;
 export default ReactImageMagnifyAICaption;
